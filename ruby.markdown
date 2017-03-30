@@ -1,3 +1,642 @@
+## 274
+
+```
+"pig latin".gsub(/(\w)(\w+)/, "\\2\\1ay") # => "igpay atinlay"
+```
+
+```
+“aabcccccaaa” => “a2b1c5a3”
+
+"aabcccccaaa".gsub(/[[:alpha:]]+/) { |m|
+  "#{m[0]}#{m.length}"
+}
+
+"aabcccccaaa".gsub(/([[:alpha:]])\1+/) { |m|
+  "#{m[0]}#{m.length}"
+}
+
+# 找单引号， 双引号
+%{This string has "various" 'kinds of' `quotation`}.
+  scan(/((["'`])[^\2]*\2)/)
+# => [["\"various\"", "\""], ["'kinds of'", "'"], ["`quotation`", "`"]]
+``` 
+
+## 275 Antique Shop
+
+```
+User = Struct.new(:firstname, :lastname)
+```
+
+```
+require "./user"
+require "./greet"
+ 
+def show_deals(user)
+  puts greet(user.firstname)
+  puts
+  puts "Here are today's super deals!"
+  puts "..."
+end
+ 
+user = User.new("Tom", "Servo")
+ 
+show_deals(user)
+
+# >> Good morning, Tom
+# >>
+# >> Here are today's super deals!
+# >> ...
+```
+
+```
+require "./user"
+ 
+def show_user_info(user)
+  puts "Hello, #{user.firstname}"
+  puts
+  puts "Here is your current user info:"
+  puts "First name: #{user.firstname}"
+  puts "Last name: #{user.lastname}"
+end
+ 
+user = User.new("Tom", "Servo")
+ 
+show_user_info(user)
+
+# >> Hello, Tom
+# >>
+# >> Here is your current user info:
+# >> First name: Tom
+# >> Last name: Servo
+```
+
+```
+require "./user"
+require "./greet"
+ 
+def show_user_info(user)
+  puts greet(user.firstname)
+  puts
+  puts "Here is your current user info:"
+  puts "First name: #{user.firstname}"
+  puts "Last name: #{user.lastname}"
+end
+ 
+user = User.new("Tom", "Servo")
+ 
+show_user_info(user)
+
+# 问题出现了
+# >> Good morning, Tom
+# >>
+# >> Here is your current user info:
+# >> First name: Good morning, Tom
+# >> Last name: Servo
+ 
+```
+
+```
+def greet(name, now=Time.now)
+  case now.hour
+  when 0..11 then  name.prepend("Good morning, ")
+  when 12..16 then name.prepend("Good afternoon, ")
+  else             name.prepend("Good evening, ")
+  end
+end
+```
+
+```
+require "./user"
+require "./greet"
+ 
+def show_purchase_history(user)
+  name = user.firstname
+  greeting = greet(name)
+  puts name
+  puts
+  puts "Here are your recent purchases:"
+  puts "..."
+end
+ 
+user = User.new("Tom", "Servo")
+ 
+show_purchase_history(user)
+ 
+# >> Good morning, Tom
+# >>
+# >> Here are your recent purchases:
+# >> ...
+```
+
+## 276  Fattr
+
+```
+class Spartan
+  attr_accessor :name
+  attr_accessor :rank
+  attr_accessor :serial_number
+ 
+  def initialize(name: "John", rank: "Master Chief", serial_number: "117")
+    @name = name
+    @rank = rank
+    @serial_number = serial_number
+  end
+end
+```
+这串代码不够简洁， 多处重复
+
+```
+require "fattr"
+ 
+class Spartan
+  fattr :name
+  fattr :rank
+  fattr :serial_number
+end
+ 
+s = Spartan.new
+s.name                          # => nil
+s.rank                          # => nil
+s.name = "John"
+s.name                          # => "John"
+```
+
+```
+require "fattr"
+ 
+class Spartan
+  fattr :name => "John"
+  fattr :rank => "Master Chief"
+  fattr :serial_number => "117"
+end
+ 
+s = Spartan.new
+s.name                          # => "John"
+s.rank                          # => "Master Chief"
+s.serial_number                 # => "117"
+```
+
+```
+require "fattr"
+ 
+class Spartan
+  fattr :name => "John"
+  fattr :rank => "Master Chief"
+  fattr :serial_number => "117"
+  fattr(:designation) { "#{name}-#{serial_number}" }
+end
+ 
+s = Spartan.new
+s.designation                   # => "John-117"
+ 
+s = Spartan.new
+s.name = "Linda"
+s.serial_number = "058"
+s.designation                   # => "Linda-058"
+s.name = "Kelly"
+s.designation                   # => "Linda-058"
+```
+
+```
+require "fattr"
+ 
+class Spartan
+  fattr :name => "John"
+  fattr :rank => "Master Chief"
+  fattr :serial_number => "117"
+  fattr(:designation) { "#{name}-#{serial_number}" }
+end
+ 
+s = Spartan.new
+s.name = "Linda"
+s.serial_number = "058"
+s.name                          # => "Linda"
+s.serial_number                 # => "058"
+s.name!
+s.serial_number!
+s.name                          # => "John"
+s.serial_number                 # => "117"
+```
+
+```
+require "fattr"
+ 
+class Spartan
+  fattr :name => "John"
+  fattr :rank => "Master Chief"
+  fattr :serial_number => "117"
+  fattr(:designation) { "#{name}-#{serial_number}" }
+ 
+  def initialize(**attributes)
+    attributes.each do |k, v|
+      public_send k, v
+    end
+  end
+end
+ 
+s = Spartan.new(name: "Linda", rank: "Petty Officer 2", serial_number: "058")
+ 
+s.name                          # => "Linda"
+s.rank                          # => "Petty Officer 2"
+s.serial_number                 # => "058"
+```
+
+## 297 Test Spies
+
+经典的单元测试应该分为3个部分：1： 编排 2： 演绎 3： 断言
+首先编排测试的场景， 然后告诉被测试对象应该做什么， 最后判断输出是否是期待的值
+
+但是原来我们编写rspec的时候， 往往是将2 和 3 颠倒了
+
+```
+RSpec.describe Thermostat do
+ 
+  it "turns on the furnace when the temperature is too low" do
+    thermometer = double(temp_f: 67)
+    furnace     = double(turn_on: true)
+    thermostat  = Thermostat.new(thermometer: thermometer, furnace: furnace)
+ 
+    expect(furnace).to receive(:turn_on)
+    thermostat.check_temperature
+  end 
+end
+```
+
+为了遵循这一习惯， 最新的rspec允许我们先演绎再断言
+
+```
+RSpec.describe Thermostat do
+ 
+  it "turns on the furnace when the temperature is too low" do
+    thermometer = double(temp_f: 67)
+    furnace     = double(turn_on: true)
+    thermostat  = Thermostat.new(thermometer: thermometer, furnace: furnace)
+ 
+    # 如果你double对象的时候也double了对应的方法， 则rspec会记录这些方法的调用
+    # 原理就是double的时候, 记录了double对象的方法
+    thermostat.check_temperature
+    expect(furnace).to have_received(:turn_on)
+  end 
+end
+```
+
+```
+it "leaves the furnace when the temperature is comfortable" do
+    thermometer = double(temp_f: 72)
+    furnace     = double
+    thermostat  = Thermostat.new(thermometer: thermometer, furnace: furnace)
+ 
+    thermostat.check_temperature
+    expect(furnace).to_not have_received(:turn_on) # 这个测试会失败, 因为没有double方法
+end
+
+it "leaves the furnace when the temperature is comfortable" do
+    thermometer = double(temp_f: 72)
+    furnace     = double(turn_on: true)
+    thermostat  = Thermostat.new(thermometer: thermometer, furnace: furnace)
+ 
+    thermostat.check_temperature
+    expect(furnace).to_not have_received(:turn_on)
+end
+
+# 除此之外:
+furnace = double.as_null_object # 会记录所有的消息
+# 更简单的是:
+furnace = spy
+```
+
+## 294 Predicate Return Value
+
+用于断言的返回值
+```
+2.even?                         # => true
+3.even?                         # => false
+```
+
+我们可能会写如下的判断逻辑
+```
+class Coffee
+  attr_accessor :sweetener
+ 
+  def sweetened?
+    if sweetener
+      true
+    else
+      false
+    end
+  end
+end
+```
+
+
+```
+class Coffee
+  attr_accessor :sweetener
+ 
+  def sweetened?
+    sweetener
+  end
+end
+```
+
+基于这种写法， 我们在做判断的时候， 可以这样写
+
+```
+if sweetener = c.sweetened?
+  puts "Coffee sweetened with #{sweetener}"
+else
+  puts "Coffee"
+end
+```
+
+更进一步的简化
+
+```
+class Coffee
+  attr_accessor :sweetener
+  alias_method :sweetened?, :sweetener
+end 
+```
+
+
+## 295: Predicate Return Value Part 2
+
+接下来看看这种返回对象和nil的方式会造成的问题
+```
+File.size?("NONESUCH") # 文件不存在或者文件大小为0的时候， 返回nil, 否则返回字节数
+```
+
+```
+File.write("foo", "hello")
+File.write("bar", "world!")
+ 
+File.size?("foo")               # => 5
+File.size?("bar")               # => 6
+ 
+# 在这种情况下做异或操作的时候， 就会出问题了
+File.size("foo") ^ File.size("bar") # => 3
+``` 
+
+```
+def coffee_to_json(coffee)
+  { "is_sweetened" => coffee.sweetened? }.to_json
+end
+ 
+# 如果这个json是作为外部的api给其他系统使用， 
+# 特别是非ruby语言的系统，就会造成问题
+c = Coffee.new
+coffee_to_json(c)
+# => "{\"is_sweetened\":null}"
+ 
+c.sweetener = "sweet & low"
+coffee_to_json(c)
+# => "{\"is_sweetened\":\"sweet & low\"}"
+```
+
+解决方案
+
+```
+class Coffee
+  attr_accessor :sweetener
+ 
+  def sweetened?
+    !!sweetener
+  end
+end
+```
+
+## 303: Exception Test
+
+主要是介绍针对exception的测试会出现的问题
+
+```
+require "rspec/autorun"
+ 
+class Thermostat
+  def initialize(thermometer:, furnace:)
+    @thermometer = thermometer
+    @furnace     = furnace
+  end
+ 
+  def check_temperature
+    temp = @thermometer.temp_f
+    if temp <= 67
+      @furnace.turn_on or fail "Furnace could not be lit"
+    end
+  end
+end
+ 
+RSpec.describe Thermostat do
+  it "raises an exception when the furnace fails to light" do
+    thermometer = double(temp_f: 67)
+    furnace     = double(turn_on: false)
+    thermostat  = Thermostat.new(thermometer: thermometer, furnace: furnace)
+ 
+    # 如果温度低于67， raise error
+    expect { thermostat.check_temperature }.to raise_error
+  end 
+end
+```
+
+如果我们修改了代码, 测试依旧可以通过， 但是其实代码是有问题的
+
+```
+require "rspec/autorun"
+ 
+class Thermostat
+  def initialize(thermometer:, furnace:)
+    @thermometer = thermometer
+    @furnace     = furnace
+  end
+ 
+  def check_temperature
+    temp = @thermometer.temp_f
+    if temp <= 67
+      @furnace.power_on or fail "Furnace could not be lit"
+    end
+  end
+end
+ 
+RSpec.describe Thermostat do
+  it "raises an exception when the furnace fails to light" do
+    thermometer = double(temp_f: 67)
+    furnace     = double(turn_on: false)
+    thermostat  = Thermostat.new(thermometer: thermometer, furnace: furnace)
+ 
+    expect { thermostat.check_temperature }.to raise_error
+  end
+end
+```
+
+``` 
+RSpec.describe Thermostat do
+  it "raises an exception when the furnace fails to light" do
+    thermometer = double(temp_f: 67)
+    furnace     = double(turn_on: false)
+    thermostat  = Thermostat.new(thermometer: thermometer, furnace: furnace)
+ 
+    expect { thermostat.check_temperature }.to raise_error(/furnace could not be lit/i)
+  end
+end
+```
+
+## 299: Instance Spy
+
+```
+require "rspec/autorun"
+ 
+class Furnace
+  def turn_on
+     true
+  end
+end
+ 
+class Thermostat
+  def initialize(thermometer:,furnace:)
+    @thermometer = thermometer
+    @furnace     = furnace
+  end
+ 
+  def check_temperature
+    temp = @thermometer.temp_f
+    if temp <= 67
+      @furnace.turn_on or fail "Furnace could not be lit"
+    end
+  end
+end
+ 
+RSpec.describe Thermostat do
+ 
+  it "turns on the furnace when the temperature is too low" do
+    thermometer = double(temp_f: 67)
+    furnace     = double.as_null_object
+    thermostat  = Thermostat.new(thermometer: thermometer, furnace: furnace)
+ 
+    thermostat.check_temperature
+    expect(furnace).to have_received(:turn_on)
+  end
+ 
+  it "leaves the furnace when the temperature is comfortable" do
+    thermometer = double(temp_f: 72)
+    furnace     = spy
+    thermostat  = Thermostat.new(thermometer: thermometer, furnace: furnace)
+ 
+    thermostat.check_temperature
+    # 这一行代码是有问题的， 如果我们将furnace的turn_on方法修改为switch_on
+    # 这个测试依旧是会通过的
+    expect(furnace).to_not have_received(:turn_on)
+  end
+ 
+  it "raises an exception when the furnace fails to light" do
+    thermometer = double(temp_f: 67)
+    furnace     = double(turn_on: false)
+    thermostat  = Thermostat.new(thermometer: thermometer, furnace: furnace)
+ 
+    expect { thermostat.check_temperature }.to raise_error
+  end
+ 
+end
+
+```
+
+```
+require "rspec/autorun"
+ 
+class Furnace
+  def switch_on
+    true
+  end
+end
+ 
+class Thermostat
+  def initialize(thermometer:,furnace:)
+    @thermometer = thermometer
+    @furnace     = furnace
+  end
+ 
+  def check_temperature
+    temp = @thermometer.temp_f
+    if temp <= 67
+      @furnace.switch_on or fail "Furnace could not be lit"
+    end
+  end
+end
+ 
+RSpec.describe Thermostat do
+ 
+  it "turns on the furnace when the temperature is too low" do
+    thermometer = double(temp_f: 67)
+    furnace     = double.as_null_object
+    thermostat  = Thermostat.new(thermometer: thermometer, furnace: furnace)
+ 
+    thermostat.check_temperature
+    expect(furnace).to have_received(:switch_on)
+  end
+ 
+  it "leaves the furnace when the temperature is comfortable" do
+    thermometer = double(temp_f: 72)
+    furnace     = instance_spy("Furnace")
+    thermostat  = Thermostat.new(thermometer: thermometer, furnace: furnace)
+ 
+    thermostat.check_temperature
+    # 如果没有这个方法就会报错
+    expect(furnace).to_not have_received(:turn_on)
+  end
+ 
+  it "raises an exception when the furnace fails to light" do
+    thermometer = double(temp_f: 67)
+    furnace     = double(switch_on: false)
+    thermostat  = Thermostat.new(thermometer: thermometer, furnace: furnace)
+ 
+    expect { thermostat.check_temperature }.to raise_error
+  end
+ 
+end
+```
+
+## 298 File Find
+
+如何在Ruby下查找文件
+
+```
+require 'pathname'
+ 
+Pathname("~/Dropbox/rubytapas/090-class-self").expand_path.find do |path|
+  p path
+end
+```
+
+```
+require 'pathname'
+ 
+Pathname("~/Dropbox/rubytapas").expand_path.find do |path|
+  if path.file? && (
+    path.basename.to_s =~ /^RubyTapas(\d{3})\b.*\.mp4$/ ||
+    path.basename.to_s =~ /^(\d{3})\b.*\.mp4$/) 
+    p path
+  end
+end
+```
+
+```
+require 'pathname'
+ 
+Pathname("~/Dropbox/rubytapas").expand_path.find do |path|
+  # 因为find方法会遍历所有的文件，包括子文件夹
+  # 所以Find.prune用于忽略整个文件夹
+  Find.prune if path.directory? && path.basename.to_s =~ /^xxx/
+  if path.file? && (
+      path.basename.to_s =~ /^RubyTapas(\d{3})\b.*\.mp4$/ ||
+      path.basename.to_s =~ /^(\d{3})\b.*\.mp4$/)
+    number   = $1
+    next if path.basename.to_s =~ /sample/
+    stats    = `avprobe #{path} 2>&1`
+    duration = stats[/Duration: (\d{2}:\d{2}:\d{2})/, 1]
+    puts "#{number} #{duration} #{path.basename}"
+  end
+end
+```
+
 ## 419 Subprocesses Part 4: Redirection
 
 ``` 
@@ -1448,18 +2087,6 @@ result.utime                    # => 1.14
 result.stime                    # => 4.37
 ```
 
-
-## 315
-
-```
-```
-
-## 314
-## 313
-
-## 306
-## 305
-## 304
 
 ## 367  Logs and signals
 

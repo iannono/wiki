@@ -9,3 +9,4 @@ BOARD = 5.times.map do |y|
 end
 
 p BOARD
+exit

@@ -108,7 +108,7 @@ function setPageThread(name, { popular, expires, activeClass } = {}){
 setPageThread("New Version out Soon!")
 ```
 
-省略参数
+# 省略参数
 
 ```javascript
 function displayTags(targetElement, ...tags){
@@ -427,7 +427,7 @@ Promise
       //...
       doSomethingElseNonBlocking(response, function(error){
         if(error){ //.. handle error }
-        //... 
+        //...
       });...
 
  getPollResultsFromServer("Sass vs. LESS")
